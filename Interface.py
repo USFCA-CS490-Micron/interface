@@ -51,3 +51,17 @@ class Interface:
 
     async def wipe_display(self):
         await self.display.show_text(" ")
+
+    async def write_splash(self):
+        title = "CALDERA"
+        subtitle = "Tap to speak, anytime."
+        await self.display.write_text(text=title, x=1, y=1, align=Alignment.MIDDLE_CENTER, color=PaletteColors.WHITE)
+        rect_width = int(DISP_MAX_W / 2)
+        # fix rect placement (currently invisible)
+        rect_x = int((DISP_MAX_W / 2) - (rect_width / 2))
+        rect_y = int(DISP_MAX_H / 2) + self.display.get_text_height(title)
+        await self.display.draw_rect_filled(x=rect_x, y=rect_y, w=rect_width, h=8, border_width=0,
+                                            border_color=PaletteColors.NIGHTBLUE, fill_color=PaletteColors.SKYBLUE)
+        await self.display.write_text(text=subtitle, x=1, y=128, align=Alignment.MIDDLE_CENTER,
+                                      color=PaletteColors.WHITE)
+        await self.update_display()
