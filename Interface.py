@@ -116,6 +116,49 @@ class Interface:
             with suppress(asyncio.CancelledError):
                 await loading_task
 
+    async def run(self):
+        try:
+            await self.write_splash()
+            await asyncio.sleep(2.5)
+            await self.wipe_display()
+            while True:
+                await self.wait_for_tap()
+                audio_arr = await self.listen()
+                await self.analyze(audio_arr)
+        finally:
+            await self.sleep(deep_sleep=True)
+
+
+async def main():
+    interface = Interface(None)
+
+    event_loop = asyncio.get_event_loop()
+    stop_event = asyncio.Event()
+
+    def handle_interrupt(signum, frame):
+        event_loop.remove_signal_handler(signal.SIGINT)
+        print("Shutting down.")
+        stop_event.set()
+
+    event_loop.add_signal_handler(signal.SIGINT, handle_interrupt, signal.SIGINT, None)
+
+    async with Frame() as frame:
+        interface.set_frame(frame=frame)
+
+        try:
+            run_task = asyncio.create_task(interface.run())
+            stop_task = asyncio.create_task(stop_event.wait())
+
+            await asyncio.wait(
+                {run_task, stop_task},
+                return_when=asyncio.FIRST_COMPLETED
+            )
+        finally:
+            exit(0)
+
+
+if __name__ == '__main__':
+    asyncio.run(main())
 
 
 
