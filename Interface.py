@@ -65,3 +65,35 @@ class Interface:
         await self.display.write_text(text=subtitle, x=1, y=128, align=Alignment.MIDDLE_CENTER,
                                       color=PaletteColors.WHITE)
         await self.update_display()
+
+    async def write_title(self, title: str):
+        await self.display.draw_rect_filled(x=1, y=56, w=int(DISP_MAX_W * 0.75), h=8, border_width=0,
+                                            border_color=PaletteColors.NIGHTBLUE, fill_color=PaletteColors.NIGHTBLUE)
+        await self.display.write_text(text=title, x=1, y=1, align=Alignment.TOP_LEFT, color=PaletteColors.CLOUDBLUE)
+
+    async def write_content(self, content: str):
+        await self.display.scroll_text(text=content, lines_per_frame=5, delay=0.12, color=PaletteColors.WHITE)
+
+    async def write_loading(self):
+        try:
+            dots = 0
+            while True:
+                print("loading")
+                text = "Loading" + "." * dots
+                await self.display.show_text(text, align=Alignment.TOP_CENTER, color=PaletteColors.RED)
+                dots = dots + 1 if dots < 3 else 0
+                await asyncio.sleep(0.5)
+        except asyncio.CancelledError:
+            await self.wipe_display()
+
+    async def listen(self):
+        text = "Listening..."
+        await self.display.write_text(text, x=50, y=50, align=Alignment.TOP_CENTER, color=PaletteColors.RED)
+        await self.update_display()
+
+        audio_arr = await self.frame.microphone.record_audio(silence_cutoff_length_in_seconds=3,
+                                                             max_length_in_seconds=30)
+
+        await self.wipe_display()
+        return audio_arr
+
