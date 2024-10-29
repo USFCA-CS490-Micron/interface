@@ -32,3 +32,22 @@ class Interface:
 
     async def break_script(self):
         await self.frame.bluetooth.send_break_signal()
+
+    async def sleep(self, deep_sleep=False):
+        text = f"Entering {"deep" if deep_sleep else "light"} sleep.{"\nTap to wake up." if deep_sleep else ""}"
+        await self.display.write_text(text=text, x=1, y=1, align=Alignment.MIDDLE_CENTER, color=PaletteColors.SEABLUE)
+        await self.update_display()
+        await asyncio.sleep(2)
+        await self.frame.sleep(deep_sleep=deep_sleep)
+
+    async def on_tap(self, callback):
+        return await self.frame.motion.run_on_tap(callback=callback)
+
+    async def wait_for_tap(self):
+        await self.frame.motion.wait_for_tap()
+
+    async def update_display(self):
+        await self.display.show()
+
+    async def wipe_display(self):
+        await self.display.show_text(" ")
