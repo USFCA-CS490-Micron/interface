@@ -1,14 +1,20 @@
 import asyncio
+import os
 import signal
+import sys
 from contextlib import suppress
+from typing import Optional
 
-import whisper
-from whisper import Whisper
-import numpy as np
 import librosa
+import numpy as np
+import whisper
 from frame_sdk import Frame
 from frame_sdk.display import Alignment, PaletteColors, Display
-from typing import Optional
+from whisper import Whisper
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from cognition.OllamaConnector import OllamaConnector
 
 DISP_MAX_W = 640  #px
 DISP_MAX_H = 400  #px
@@ -20,6 +26,7 @@ class Interface:
         self.display: Display = frame.display if frame is not None else None
         self.sample_rate: int = frame.microphone.sample_rate if frame is not None else None
         self.whisper: Whisper = whisper.load_model("base")
+        self.ollama: OllamaConnector = OllamaConnector()
 
     def set_frame(self, frame: Frame):
         if frame is not None:
@@ -109,8 +116,12 @@ class Interface:
 
         try:
             audio_arr = self.preprocess_audio(audio_arr, self.sample_rate)
-            transcription = self.whisper.transcribe(audio_arr)
-            print(f"Transcription: {transcription["text"]}")
+            transcription = self.whisper.transcribe(audio_arr)["text"]
+            print(f"Transcription: {transcription}")
+
+            response = self.ollama.send_query_qa(transcription)
+            print(f"Response: {response}")
+
         finally:
             loading_task.cancel()
             with suppress(asyncio.CancelledError):
@@ -118,6 +129,7 @@ class Interface:
 
     async def run(self):
         try:
+            await self.get_battery_level()
             await self.write_splash()
             await asyncio.sleep(2.5)
             await self.wipe_display()
@@ -159,6 +171,3 @@ async def main():
 
 if __name__ == '__main__':
     asyncio.run(main())
-
-
-
