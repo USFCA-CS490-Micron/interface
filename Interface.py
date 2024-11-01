@@ -2,7 +2,6 @@ import asyncio
 import os
 import signal
 import sys
-from contextlib import suppress
 from typing import Optional
 
 import librosa
@@ -15,6 +14,7 @@ from whisper import Whisper
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from cognition.OllamaConnector import OllamaConnector
+from cognition.HybridModelHandler import HybridModelHandler
 
 DISP_MAX_W = 640  #px
 DISP_MAX_H = 400  #px
@@ -27,6 +27,7 @@ class Interface:
         self.sample_rate: int = frame.microphone.sample_rate if frame is not None else None
         self.whisper: Whisper = whisper.load_model("base")
         self.ollama: OllamaConnector = OllamaConnector()
+        self.hmh: HybridModelHandler = HybridModelHandler()
 
     def set_frame(self, frame: Frame):
         if frame is not None:
@@ -80,6 +81,8 @@ class Interface:
 
     async def write_content(self, content: str):
         await self.display.scroll_text(text=content, lines_per_frame=5, delay=0.12, color=PaletteColors.WHITE)
+        await asyncio.sleep(2)
+        await self.wipe_display()
 
     async def write_loading(self):
         try:
@@ -112,20 +115,25 @@ class Interface:
         return audio_arr.astype(np.float32)
 
     async def analyze(self, audio_arr: np.ndarray):
-        loading_task = asyncio.create_task(self.write_loading())
+        # loading_task = asyncio.create_task(self.write_loading())
 
         try:
             audio_arr = self.preprocess_audio(audio_arr, self.sample_rate)
             transcription = self.whisper.transcribe(audio_arr)["text"]
             print(f"Transcription: {transcription}")
 
-            response = self.ollama.send_query_qa(transcription)
+            response = self.hmh.query(transcription)
+
             print(f"Response: {response}")
 
+            await self.write_content(response)
+
         finally:
-            loading_task.cancel()
-            with suppress(asyncio.CancelledError):
-                await loading_task
+            pass
+            # print("Interface.analyze() finished.")
+            # loading_task.cancel()
+            # with suppress(asyncio.CancelledError):
+            #     await loading_task
 
     async def run(self):
         try:
