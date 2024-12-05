@@ -9,12 +9,12 @@ import numpy as np
 import whisper
 from frame_sdk import Frame
 from frame_sdk.display import Alignment, PaletteColors, Display
-from whisper import Whisper
+from whisper import Whisper  # TODO eventually move this functionality to a greater "Cognition.py" module
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from cognition.OllamaConnector import OllamaConnector
-from cognition.HybridModelHandler import HybridModelHandler
+from cognition.HybridModelHandler import \
+    HybridModelHandler  # TODO eventually move this functionality to a greater "Cognition.py" module
 
 DISP_MAX_W = 640  #px
 DISP_MAX_H = 400  #px
@@ -26,7 +26,6 @@ class Interface:
         self.display: Display = frame.display if frame is not None else None
         self.sample_rate: int = frame.microphone.sample_rate if frame is not None else None
         self.whisper: Whisper = whisper.load_model("base")
-        self.ollama: OllamaConnector = OllamaConnector()
         self.hmh: HybridModelHandler = HybridModelHandler()
 
     def set_frame(self, frame: Frame):
@@ -98,12 +97,12 @@ class Interface:
 
     async def listen(self):
         text = "Listening..."
+        print(text)
         await self.display.write_text(text, x=50, y=50, align=Alignment.TOP_CENTER, color=PaletteColors.RED)
         await self.update_display()
 
         audio_arr = await self.frame.microphone.record_audio(silence_cutoff_length_in_seconds=3,
                                                              max_length_in_seconds=30)
-
         await self.wipe_display()
         return audio_arr
 
@@ -120,11 +119,13 @@ class Interface:
         try:
             audio_arr = self.preprocess_audio(audio_arr, self.sample_rate)
             transcription = self.whisper.transcribe(audio_arr)["text"]
-            print(f"Transcription: {transcription}")
+            print(f"{"=" * 24}\n"
+                  f"Transcription: {transcription}")
 
             response = self.hmh.query(transcription)
 
-            print(f"Response: {response}")
+            print(f"Response: {response}\n"
+                  f"{"=" * 24}")
 
             await self.write_content(response)
 
